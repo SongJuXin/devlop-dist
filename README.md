@@ -14,6 +14,8 @@ const config={
     port: 22,
     password:'123456',
     path:'/root/FE/realbox/',
+    baseURL:'http://47.104.154.39:8881'
+
 }
 devlop(config)
 ```
