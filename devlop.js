@@ -25,10 +25,10 @@ module.exports=function({host,username,port,path,password,privateKey,baseURL}){
         },
         ...config,
     }).then(function () {
+        console.log('connect success')
         const failed = []
         const successful = []
-        console.log('connect success')
-        ssh.exec('rm -rf '+remotePath+'dist',[''],{cwd:remotePath}).then(result=>{
+        ssh.exec('sudo',['rm -rf '+remotePath+'dist'],{cwd:remotePath,options:{pty:true},stdin:config.password+'\n'}).then(result=>{
             console.log('rm dist:',result,'。。。')
             console.log(`putDirectory`)
             ssh.putDirectory('dist', remotePath+'dist', {
@@ -47,7 +47,7 @@ module.exports=function({host,username,port,path,password,privateKey,baseURL}){
                     }
                 }
             }).then(status=>{
-                console.log('the directory transfer was', status ? 'successful' : 'unsuccessful')
+                console.log('the directory transfer was', status,status ? 'successful' : 'unsuccessful')
                 console.log('failed transfers:', failed.join(', '))
                 const baseURL=typeof config.baseURL==='string'?config.baseURL:`http://${config.host}:8881`
                 ssh.exec(`sed -i 's#baseURL:".*",timeout#baseURL:"${baseURL}",timeout#g' dist/js/app.*`,[],{cwd:remotePath}).then(data=>{
