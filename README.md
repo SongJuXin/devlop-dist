@@ -21,8 +21,3 @@ devlop(config)
 ```
 命令行执行`node run.js`
 
-
-### 已知错误
-1. UnhandledPromiseRejectionWarning: Error: Failure
-
-    解决方法：重新运行
