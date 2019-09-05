@@ -30,7 +30,7 @@ const putFileAlwaysSuccess=(remotePath)=>{
                 }
             }
         }).then(status=>{
-            console.log('the directory transfer was,files:',successful.join() )
+            console.log('the directory transfer was success, all files are:',successful.join() )
             return 'success'
         }).catch(err=>{
             console.log('put failed,err msg:',err)
