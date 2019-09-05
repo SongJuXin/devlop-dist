@@ -12,6 +12,36 @@ const ssh = new node_ssh()
  * @param privateKey 远程走秘钥方式的私钥路径
  * @param baseURL app*.js里的baseURL，需包含http://。默认取http://host:8881
  */
+const putFileAlwaysSuccess=(remotePath)=>{
+    const put=()=>{
+        return ssh.putDirectory('dist', remotePath+'dist', {
+            recursive: true,
+            concurrency: 5,
+            validate: function (itemPath) {
+                const baseName = _path.basename(itemPath)
+                return baseName.substr(0, 1) !== '.' && // do not allow dot files
+                    baseName !== 'node_modules' // do not allow node_modules
+            },
+            tick: function (localPath, remotePath, error) {
+                if (error) {
+                    throw ('put '+localPath+' failed')
+                } else {
+                    successful.push(localPath)
+                }
+            }
+        }).then(status=>{
+            console.log('the directory transfer was,files:',successful.join() )
+            return 'success'
+        }).catch(err=>{
+            console.log('put failed,err msg:',err)
+            console.log('put again')
+            successful = []
+            return put()
+        })
+    }
+    let successful = []
+    return put()
+}
 module.exports=function({host,username,port,path,password,privateKey,baseURL}){
     const config=arguments[0]||{}
     const remotePath=config.path
@@ -26,29 +56,11 @@ module.exports=function({host,username,port,path,password,privateKey,baseURL}){
         ...config,
     }).then(function () {
         console.log('connect success')
-        const failed = []
-        const successful = []
-        ssh.exec('sudo',['rm -rf '+remotePath+'dist'],{cwd:remotePath,options:{pty:true},stdin:config.password+'\n'}).then(result=>{
+        ssh.exec('rm -rf '+remotePath+'dist',[''],{cwd:remotePath}).then(result=>{
             console.log('rm dist:',result,'。。。')
             console.log(`putDirectory`)
-            ssh.putDirectory('dist', remotePath+'dist', {
-                recursive: true,
-                concurrency: 5,
-                validate: function (itemPath) {
-                    const baseName = _path.basename(itemPath)
-                    return baseName.substr(0, 1) !== '.' && // do not allow dot files
-                        baseName !== 'node_modules' // do not allow node_modules
-                },
-                tick: function (localPath, remotePath, error) {
-                    if (error) {
-                        failed.push(localPath)
-                    } else {
-                        successful.push(localPath)
-                    }
-                }
-            }).then(status=>{
-                console.log('the directory transfer was', status,status ? 'successful' : 'unsuccessful')
-                console.log('failed transfers:', failed.join(', '))
+            putFileAlwaysSuccess(remotePath).then((status)=>{
+                console.log('put status:',status)
                 const baseURL=typeof config.baseURL==='string'?config.baseURL:`http://${config.host}:8881`
                 ssh.exec(`sed -i 's#baseURL:".*",timeout#baseURL:"${baseURL}",timeout#g' dist/js/app.*`,[],{cwd:remotePath}).then(data=>{
                     console.log('sed:',data)
@@ -59,7 +71,7 @@ module.exports=function({host,username,port,path,password,privateKey,baseURL}){
                             ssh.exec(`mkdir history/${time}`,[''],{cwd:remotePath}).then(result=>{
                                 console.log(`mkdir ${time}:`,result)
                                 ssh.exec(`cp -r dist history/${time}`,[''],{cwd:remotePath}).then(result=>{
-                                    console.log(`cp: to history/dist${time}` )
+                                    console.log(`cp: to history/dist/${time}` )
                                     console.log('success')
                                     ssh.dispose()
 
