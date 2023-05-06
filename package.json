@@ -13,6 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-ssh": "^6.0.0"
+    "node-ssh": "^13.1.0"
   }
 }
